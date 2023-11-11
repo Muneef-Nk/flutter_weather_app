@@ -4,57 +4,58 @@ import 'package:geolocator/geolocator.dart';
 import 'package:weather/services/location_service.dart';
 
 class LocationProvider with ChangeNotifier {
-  Position? _currentPosition;
-  Position? get currentPostion => _currentPosition;
+  Position? currentPosition;
+  String? currentPlace;
+
+  // Position? get currentPostion => currentPosition;
   final LocationService _locationService = LocationService();
 
-  Placemark? _currentLocationName;
-  Placemark? get currentLocationName => _currentLocationName;
+  Placemark? currentLocation;
 
-  Future<void> determinePosition() async {
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-
-    if (!serviceEnabled) {
-      _currentPosition = null;
-      notifyListeners();
-      return;
-    }
-
-    permission = await Geolocator.checkPermission();
-
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-
-      if (permission == LocationPermission.denied) {
-        _currentPosition = null;
-        notifyListeners();
-        return;
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      _currentPosition = null;
-      notifyListeners();
-      return;
-    }
-
-    _currentPosition = await Geolocator.getCurrentPosition();
-    print(_currentPosition);
-
-    _currentLocationName =
-        await _locationService.getLocationName(_currentPosition);
-
-    print(_currentLocationName);
-
+  void changedPlace(String place) {
+    currentPlace = place;
     notifyListeners();
   }
 
-  // ask the permission
+  Future<void> determinePosition() async {
+    try {
+      notifyListeners();
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
 
-  // get the location
+      if (!serviceEnabled) {
+        currentPosition = null;
+        notifyListeners();
+        return;
+      }
 
-  // get the placemark
+      LocationPermission permission = await Geolocator.checkPermission();
+
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+
+        if (permission == LocationPermission.denied) {
+          currentPosition = null;
+          notifyListeners();
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        currentPosition = null;
+        notifyListeners();
+        return;
+      }
+
+      currentPosition = await Geolocator.getCurrentPosition();
+      print("Current position: $currentPosition");
+
+      currentLocation = await _locationService.getLocationName(currentPosition);
+      print("Current name: $currentLocation");
+    } catch (e) {
+      print("Error determining position: $e");
+      // Handle the error gracefully, e.g., notify the user.
+    } finally {
+      notifyListeners();
+    }
+  }
 }
